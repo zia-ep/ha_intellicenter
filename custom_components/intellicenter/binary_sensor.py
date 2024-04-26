@@ -29,39 +29,39 @@ async def async_setup_entry(
 
     sensors = []
 
-    object: PoolObject
-    for object in controller.model.objectList:
-        if object.objtype == CIRCUIT_TYPE and object.subtype == "FRZ":
+    obj: PoolObject
+    for obj in controller.model.objectList:
+        if obj.objtype == CIRCUIT_TYPE and obj.subtype == "FRZ":
             sensors.append(
                 PoolBinarySensor(
                     entry,
                     controller,
-                    object,
+                    obj,
                     icon = "mdi:snowflake"
                 )
             )
-        elif object.objtype == HEATER_TYPE:
+        elif obj.objtype == HEATER_TYPE:
             sensors.append(
                 HeaterBinarySensor(
                     entry,
                     controller,
-                    object,
+                    obj,
                 )
             )
-        elif object.objtype == "SCHED":
+        elif obj.objtype == "SCHED":
             sensors.append(
                 PoolBinarySensor(
                     entry,
                     controller,
-                    object,
+                    obj,
                     attribute_key="ACT",
                     name="+ (schedule)",
                     enabled_by_default=False,
                     extraStateAttributes={"VACFLO"},
                 )
             )
-        elif object.objtype == "PUMP":
-            sensors.append(PoolBinarySensor(entry, controller, object, valueForON="10"))
+        elif obj.objtype == "PUMP":
+            sensors.append(PoolBinarySensor(entry, controller, obj, valueForON="10"))
     async_add_entities(sensors)
 
 

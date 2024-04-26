@@ -50,28 +50,28 @@ async def async_setup_entry(
 
     lights = []
 
-    object: PoolObject
-    for object in controller.model.objectList:
-        if object.isALight:
+    obj: PoolObject
+    for obj in controller.model.objectList:
+        if obj.isALight:
             lights.append(
                 PoolLight(
                     entry,
                     controller,
-                    object,
-                    LIGHTS_EFFECTS if object.supportColorEffects else None,
+                    obj,
+                    LIGHTS_EFFECTS if obj.supportColorEffects else None,
                 )
             )
-        elif object.isALightShow:
+        elif obj.isALightShow:
             supportColorEffects = reduce(
                 lambda x, y: x and y,
-                (controller.model[obj[CIRCUIT_ATTR]].supportColorEffects for obj in controller.model.getChildren(object)),
+                (controller.model[obj[CIRCUIT_ATTR]].supportColorEffects for obj in controller.model.getChildren(obj)),
                 True,
             )
             lights.append(
                 PoolLight(
                     entry,
                     controller,
-                    object,
+                    obj,
                     LIGHTS_EFFECTS if supportColorEffects else None,
                 )
             )
