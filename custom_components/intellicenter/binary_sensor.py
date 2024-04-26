@@ -2,16 +2,16 @@
 
 import logging
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.typing import HomeAssistantType
-
 from custom_components.intellicenter.pyintellicenter.attributes import (
     BODY_ATTR,
     CIRCUIT_TYPE,
     HEATER_TYPE,
 )
 from custom_components.intellicenter.water_heater import HEATER_ATTR, HTMODE_ATTR
+
+from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.typing import HomeAssistantType
 
 from . import PoolEntity
 from .const import DOMAIN

@@ -3,17 +3,17 @@
 import logging
 
 from homeassistant.components.number import (
-    NumberEntity,
-    DEFAULT_MIN_VALUE,
     DEFAULT_MAX_VALUE,
+    DEFAULT_MIN_VALUE,
     DEFAULT_STEP,
+    NumberEntity,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import PERCENTAGE
 from homeassistant.helpers.typing import HomeAssistantType
 
 from . import PoolEntity
 from .const import DOMAIN
-from homeassistant.const import PERCENTAGE
 from .pyintellicenter import (
     BODY_ATTR,
     BODY_TYPE,

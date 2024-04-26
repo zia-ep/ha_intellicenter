@@ -64,10 +64,7 @@ async def async_setup_entry(
         elif object.isALightShow:
             supportColorEffects = reduce(
                 lambda x, y: x and y,
-                map(
-                    lambda obj: controller.model[obj[CIRCUIT_ATTR]].supportColorEffects,
-                    controller.model.getChildren(object),
-                ),
+                (controller.model[obj[CIRCUIT_ATTR]].supportColorEffects for obj in controller.model.getChildren(object)),
                 True,
             )
             lights.append(
@@ -92,7 +89,7 @@ class PoolLight(PoolEntity, LightEntity):
         entry: ConfigEntry,
         controller: ModelController,
         poolObject: PoolObject,
-        colorEffects: dict = None,
+        colorEffects: dict | None = None,
     ):
         """Initialize."""
         super().__init__(entry, controller, poolObject)

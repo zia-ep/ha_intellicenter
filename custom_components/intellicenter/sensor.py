@@ -3,16 +3,13 @@
 import logging
 from typing import Optional
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONCENTRATION_PARTS_PER_MILLION,
-    UnitOfPower,
-)
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONCENTRATION_PARTS_PER_MILLION, UnitOfPower
 from homeassistant.helpers.typing import HomeAssistantType
 
 from . import PoolEntity
