@@ -13,7 +13,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, EVENT_HOMEASSISTANT_STOP, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import dispatcher
+from homeassistant.helpers import config_validation as cv, dispatcher
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.typing import ConfigType
 
@@ -55,6 +55,8 @@ from .pyintellicenter import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
 
 # here is the list of platforms we support
 PLATFORMS = [
