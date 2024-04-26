@@ -85,6 +85,8 @@ async def async_setup_entry(
 class PoolLight(PoolEntity, LightEntity):
     """Representation of an Pentair light."""
 
+    _attr_supported_color_modes = {ColorMode.ONOFF}
+
     def __init__(
         self,
         entry: ConfigEntry,
@@ -98,7 +100,6 @@ class PoolLight(PoolEntity, LightEntity):
         self._extra_state_attributes = [USE_ATTR]
 
         self._features = 0
-        self._supported_color_modes = ColorMode.ONOFF
 
         self._lightEffects = colorEffects
         self._reversedLightEffects = (
@@ -112,11 +113,6 @@ class PoolLight(PoolEntity, LightEntity):
     def supported_features(self) -> int:
         """Return supported features."""
         return self._features
-
-    @property
-    def supported_color_modes(self) -> set[ColorMode] | set[str] | None:
-        """Return supported color modes."""
-        return self._supported_color_modes
 
     @property
     def effect_list(self) -> list:
