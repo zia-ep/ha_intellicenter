@@ -1,7 +1,7 @@
 """Pentair IntelliCenter Integration."""
 import asyncio
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
@@ -144,7 +144,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             dispatcher.async_dispatcher_send(hass, self.CONNECTION_SIGNAL, False)
 
         @callback
-        def updated(self, controller, updates: Dict[str, PoolObject]):
+        def updated(self, controller, updates: dict[str, PoolObject]):
             """Handle updates from the Pentair system."""
             _LOGGER.debug(f"received update for {len(updates)} pool objects")
             dispatcher.async_dispatcher_send(hass, self.UPDATE_SIGNAL, updates)
@@ -289,7 +289,7 @@ class PoolEntity(Entity):
         }
 
     @property
-    def extra_state_attributes(self) -> Optional[Dict[str, Any]]:
+    def extra_state_attributes(self) -> Optional[dict[str, Any]]:
         """Return the state attributes of the entity."""
 
         object = self._poolObject
@@ -318,13 +318,13 @@ class PoolEntity(Entity):
             self._poolObject.objnam, changes, waitForResponse=False
         )
 
-    def isUpdated(self, updates: Dict[str, Dict[str, str]]) -> bool:
+    def isUpdated(self, updates: dict[str, dict[str, str]]) -> bool:
         """Return true if the entity is updated by the updates from Intellicenter."""
 
         return self._attribute_key in updates.get(self._poolObject.objnam, {})
 
     @callback
-    def _update_callback(self, updates: Dict[str, Dict[str, str]]):
+    def _update_callback(self, updates: dict[str, dict[str, str]]):
         """Update the entity if its underlying pool object has changed."""
 
         if self.isUpdated(updates):

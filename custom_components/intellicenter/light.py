@@ -2,7 +2,7 @@
 
 from functools import reduce
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from homeassistant.components.light import (
     ATTR_EFFECT,
@@ -150,7 +150,7 @@ class PoolLight(PoolEntity, LightEntity):
 
         self.requestChanges(changes)
 
-    def isUpdated(self, updates: Dict[str, Dict[str, str]]) -> bool:
+    def isUpdated(self, updates: dict[str, dict[str, str]]) -> bool:
         """Return true if the entity is updated by the updates from Intellicenter."""
 
         myUpdates = updates.get(self._poolObject.objnam, {})

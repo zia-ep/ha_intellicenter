@@ -1,7 +1,6 @@
 """Pentair Intellicenter binary sensors."""
 
 import logging
-from typing import Dict
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -121,7 +120,7 @@ class HeaterBinarySensor(PoolEntity, BinarySensorEntity):
                 return True
         return False
 
-    def isUpdated(self, updates: Dict[str, Dict[str, str]]) -> bool:
+    def isUpdated(self, updates: dict[str, dict[str, str]]) -> bool:
         """Return true if the entity is updated by the updates from Intellicenter."""
 
         for objnam in self._bodies & updates.keys():
