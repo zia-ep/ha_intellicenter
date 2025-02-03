@@ -17,6 +17,8 @@ from .const import (
 )
 from .pyintellicenter import BaseController, SystemInfo
 
+from homeassistant.core import callback
+
 _LOGGER = logging.getLogger(__name__)
 
 
