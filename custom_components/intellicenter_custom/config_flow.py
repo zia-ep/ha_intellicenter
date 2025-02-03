@@ -4,20 +4,17 @@ import logging
 from typing import Any, Optional
 
 from homeassistant.config_entries import CONN_CLASS_LOCAL_PUSH, ConfigFlow, OptionsFlow
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_NAME,
+from homeassistant.const import CONF_HOST, CONF_NAME
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.typing import ConfigType
+import voluptuous as vol
+from .const import (
+    DOMAIN,
     CONF_RECONNECT_INTERVAL,
     CONF_FORCE_RECONNECT_INTERVAL,
     DEFAULT_RECONNECT_INTERVAL,
     DEFAULT_FORCE_RECONNECT_INTERVAL,
 )
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.typing import ConfigType
-import voluptuous as vol
-from homeassistant.core import callback
-
-from .const import DOMAIN
 from .pyintellicenter import BaseController, SystemInfo
 
 _LOGGER = logging.getLogger(__name__)
