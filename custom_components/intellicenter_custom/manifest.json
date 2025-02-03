@@ -1,6 +1,6 @@
 {
     "domain": "intellicenter_custom",
-    "name": "Pentair IntelliCenter",
+    "name": "Pentair IntelliCenter Custom",
     "codeowners": [
         "@dwradcliffe",
         "@jzabrams"
