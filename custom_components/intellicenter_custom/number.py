@@ -48,8 +48,16 @@ async def async_setup_entry(
             bodies = controller.model.getByType(BODY_TYPE)
             intellichlor_bodies = obj[BODY_ATTR].split(" ")
 
+            _LOGGER.debug(f"Intellichlor bodies found: {intellichlor_bodies}")
+
             body: PoolObject
             for body in bodies:
+                if body.objnam not in intellichlor_bodies:
+                    _LOGGER.warning(
+                        f"Intellichlor body '{body.objnam}' not found in expected list: {intellichlor_bodies}"
+                    )
+                    continue
+
                 intellichlor_index = intellichlor_bodies.index(body.objnam)
                 attribute_key = None
                 if intellichlor_index == 0:
@@ -61,7 +69,6 @@ async def async_setup_entry(
                         PoolNumber(
                             entry,
                             controller,
-                            # body,
                             obj,
                             unit_of_measurement=PERCENTAGE,
                             attribute_key=attribute_key,

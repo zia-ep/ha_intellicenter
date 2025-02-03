@@ -1,7 +1,10 @@
 {
-    "domain": "intellicenter",
+    "domain": "intellicenter_custom",
     "name": "Pentair IntelliCenter",
-    "codeowners": ["@dwradcliffe"],
+    "codeowners": [
+        "@dwradcliffe",
+        "@jzabrams"
+    ],
     "config_flow": true,
     "dependencies": [],
     "documentation": "https://github.com/dwradcliffe/intellicenter",
@@ -11,6 +14,9 @@
     "requirements": [],
     "version": "1.4.0a3",
     "zeroconf": [
-        { "type":"_http._tcp.local.", "name":"pentair*" }
-      ]
-  }
+        {
+            "type": "_http._tcp.local.",
+            "name": "pentair*"
+        }
+    ]
+}

@@ -96,7 +96,7 @@ def prune(obj):
         return [prune(item) for item in obj]
     elif type(obj) is dict:
         result = {}
-        for (key, value) in obj.items():
+        for key, value in obj.items():
             if key != value:
                 result[key] = prune(value)
         return result
@@ -161,8 +161,14 @@ class BaseController:
     def stop(self):
         """Stop all activities from this controller and disconnect."""
         if self._transport:
-            for request in self._requests.values():
-                request.cancel()
+            for msg_id, request in self._requests.items():
+                if request is None:
+                    _LOGGER.warning(
+                        f"Warning: Found None request in _requests for msg_id {msg_id}"
+                    )
+                else:
+                    request.cancel()
+            self._requests.clear()
             self._transport.close()
             self._transport = None
             self._protocol = None
