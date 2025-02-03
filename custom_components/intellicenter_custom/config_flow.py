@@ -185,12 +185,12 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class OptionsFlowHandler(OptionsFlow):
-    """Handle options flow for the Pentair Intellicenter integration."""
-
-    def __init__(self, config_entry):
-        self.config_entry = config_entry
+    """Handle options flow for the Pentair Intellicenter integration. Specifically for reconnect intervals at the moment."""
 
     async def async_step_init(self, user_input=None):
+        config_entry = self.hass.config_entries.async_get_entry(
+            self.context["entry_id"]
+        )
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
@@ -200,18 +200,18 @@ class OptionsFlowHandler(OptionsFlow):
                 {
                     vol.Optional(
                         CONF_RECONNECT_INTERVAL,
-                        default=self.config_entry.options.get(
+                        default=config_entry.options.get(
                             CONF_RECONNECT_INTERVAL,
-                            self.config_entry.data.get(
+                            config_entry.data.get(
                                 CONF_RECONNECT_INTERVAL, DEFAULT_RECONNECT_INTERVAL
                             ),
                         ),
                     ): int,
                     vol.Optional(
                         CONF_FORCE_RECONNECT_INTERVAL,
-                        default=self.config_entry.options.get(
+                        default=config_entry.options.get(
                             CONF_FORCE_RECONNECT_INTERVAL,
-                            self.config_entry.data.get(
+                            config_entry.data.get(
                                 CONF_FORCE_RECONNECT_INTERVAL,
                                 DEFAULT_FORCE_RECONNECT_INTERVAL,
                             ),
