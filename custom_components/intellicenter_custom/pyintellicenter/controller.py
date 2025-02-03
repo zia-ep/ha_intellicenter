@@ -434,6 +434,9 @@ class ConnectionHandler:
         self, controller, timeBetweenReconnects=30, force_reconnect_interval=3600
     ):
         """Initialize the handler."""
+        _LOGGER.info(
+            "Initializing ConnectionHandler with improved connection management (CUSTOM VERSION 0.4)"
+        )
         self._controller = controller
         self._starterTask = None
         self._healthCheckTask = None
