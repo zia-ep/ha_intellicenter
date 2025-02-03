@@ -15,6 +15,7 @@ from homeassistant.const import (
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.typing import ConfigType
 import voluptuous as vol
+from homeassistant.core import callback
 
 from .const import DOMAIN
 from .pyintellicenter import BaseController, SystemInfo
