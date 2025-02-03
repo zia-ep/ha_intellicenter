@@ -18,7 +18,14 @@ from homeassistant.helpers import config_validation as cv, dispatcher
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN
+
+from .const import (
+    CONF_FORCE_RECONNECT_INTERVAL,
+    CONF_RECONNECT_INTERVAL,
+    DEFAULT_FORCE_RECONNECT_INTERVAL,
+    DEFAULT_RECONNECT_INTERVAL,
+    DOMAIN,
+)
 from .pyintellicenter import (
     ACT_ATTR,
     BODY_ATTR,
@@ -109,8 +116,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             controller,
             entry: ConfigEntry,
             hass: HomeAssistant,
-            timeBetweenReconnects=30,
-            force_reconnect_interval=3600,
+            timeBetweenReconnects=entry.options.get(
+                CONF_RECONNECT_INTERVAL,
+                entry.data.get(CONF_RECONNECT_INTERVAL, DEFAULT_RECONNECT_INTERVAL),
+            ),
+            force_reconnect_interval=entry.options.get(
+                CONF_FORCE_RECONNECT_INTERVAL,
+                entry.data.get(
+                    CONF_FORCE_RECONNECT_INTERVAL, DEFAULT_FORCE_RECONNECT_INTERVAL
+                ),
+            ),
         ):
             """Initialize the handler."""
             super().__init__(controller, timeBetweenReconnects)

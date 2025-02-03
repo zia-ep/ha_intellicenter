@@ -3,8 +3,15 @@
 import logging
 from typing import Any, Optional
 
-from homeassistant.config_entries import CONN_CLASS_LOCAL_PUSH, ConfigFlow
-from homeassistant.const import CONF_HOST, CONF_NAME
+from homeassistant.config_entries import CONN_CLASS_LOCAL_PUSH, ConfigFlow, OptionsFlow
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_NAME,
+    CONF_RECONNECT_INTERVAL,
+    CONF_FORCE_RECONNECT_INTERVAL,
+    DEFAULT_RECONNECT_INTERVAL,
+    DEFAULT_FORCE_RECONNECT_INTERVAL,
+)
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.typing import ConfigType
 import voluptuous as vol
@@ -30,6 +37,12 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
         """Initialize a new Intellicenter ConfigFlow."""
         pass
 
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return OptionsFlowHandler(config_entry)
+
     async def async_step_user(
         self, user_input: Optional[ConfigType] = None
     ) -> dict[str, Any]:
@@ -45,7 +58,16 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
 
             return self.async_create_entry(
-                title=system_info.propName, data={CONF_HOST: user_input[CONF_HOST]}
+                title=system_info.propName,
+                data={
+                    CONF_HOST: user_input[CONF_HOST],
+                    CONF_RECONNECT_INTERVAL: user_input.get(
+                        CONF_RECONNECT_INTERVAL, DEFAULT_RECONNECT_INTERVAL
+                    ),
+                    CONF_FORCE_RECONNECT_INTERVAL: user_input.get(
+                        CONF_FORCE_RECONNECT_INTERVAL, DEFAULT_FORCE_RECONNECT_INTERVAL
+                    ),
+                },
             )
         except CannotConnect:
             return self._show_setup_form({"base": "cannot_connect"})
@@ -112,7 +134,18 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
         """Show the setup form to the user."""
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema({vol.Required(CONF_HOST): str}),
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_HOST): str,
+                    vol.Optional(
+                        CONF_RECONNECT_INTERVAL, default=DEFAULT_RECONNECT_INTERVAL
+                    ): int,
+                    vol.Optional(
+                        CONF_FORCE_RECONNECT_INTERVAL,
+                        default=DEFAULT_FORCE_RECONNECT_INTERVAL,
+                    ): int,
+                }
+            ),
             errors=errors or {},
         )
 
@@ -149,3 +182,41 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
             if CONF_HOST in entry.data
         }
         return host in existing_hosts
+
+
+class OptionsFlowHandler(OptionsFlow):
+    """Handle options flow for the Pentair Intellicenter integration."""
+
+    def __init__(self, config_entry):
+        self.config_entry = config_entry
+
+    async def async_step_init(self, user_input=None):
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_RECONNECT_INTERVAL,
+                        default=self.config_entry.options.get(
+                            CONF_RECONNECT_INTERVAL,
+                            self.config_entry.data.get(
+                                CONF_RECONNECT_INTERVAL, DEFAULT_RECONNECT_INTERVAL
+                            ),
+                        ),
+                    ): int,
+                    vol.Optional(
+                        CONF_FORCE_RECONNECT_INTERVAL,
+                        default=self.config_entry.options.get(
+                            CONF_FORCE_RECONNECT_INTERVAL,
+                            self.config_entry.data.get(
+                                CONF_FORCE_RECONNECT_INTERVAL,
+                                DEFAULT_FORCE_RECONNECT_INTERVAL,
+                            ),
+                        ),
+                    ): int,
+                }
+            ),
+        )
