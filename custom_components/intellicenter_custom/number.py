@@ -43,33 +43,37 @@ async def async_setup_entry(
             and obj.subtype == "ICHLOR"
             and PRIM_ATTR in obj.attributes
         ):
-            # Get the list of bodies configured for this Intellichlor
+            bodies = controller.model.getByType(BODY_TYPE)
             intellichlor_bodies = obj[BODY_ATTR].split(" ")
-            _LOGGER.debug(f"Intellichlor bodies configured: {intellichlor_bodies}")
 
-            # Only process bodies that are explicitly configured
-            for body_id in intellichlor_bodies:
-                body = controller.model.getByID(body_id)
-                if not body:
-                    _LOGGER.warning(
-                        f"Configured Intellichlor body '{body_id}' not found in system"
+            _LOGGER.debug(f"Intellichlor bodies found: {intellichlor_bodies}")
+
+            body: PoolObject
+            for body in bodies:
+                # Only create controls for bodies that have ICHLOR support
+                if body.objnam not in intellichlor_bodies:
+                    _LOGGER.debug(
+                        f"Skipping Intellichlor control for body '{body.objnam}' - not in configured list: {intellichlor_bodies}"
                     )
                     continue
 
-                # Determine if this is primary or secondary
-                intellichlor_index = intellichlor_bodies.index(body_id)
-                attribute_key = PRIM_ATTR if intellichlor_index == 0 else SEC_ATTR
-
-                numbers.append(
-                    PoolNumber(
-                        entry,
-                        controller,
-                        obj,
-                        unit_of_measurement=PERCENTAGE,
-                        attribute_key=attribute_key,
-                        name=f"+ Output % ({body.sname})",
+                intellichlor_index = intellichlor_bodies.index(body.objnam)
+                attribute_key = None
+                if intellichlor_index == 0:
+                    attribute_key = PRIM_ATTR
+                elif intellichlor_index == 1:
+                    attribute_key = SEC_ATTR
+                if attribute_key is not None:
+                    numbers.append(
+                        PoolNumber(
+                            entry,
+                            controller,
+                            obj,
+                            unit_of_measurement=PERCENTAGE,
+                            attribute_key=attribute_key,
+                            name=f"+ Output % ({body.sname})",
+                        )
                     )
-                )
 
     async_add_entities(numbers)
 
