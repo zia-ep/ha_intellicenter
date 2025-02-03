@@ -33,9 +33,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ):
     """Load pool numbers based on a config entry."""
-
     controller: ModelController = hass.data[DOMAIN][entry.entry_id].controller
-
     numbers = []
 
     obj: PoolObject
@@ -45,36 +43,33 @@ async def async_setup_entry(
             and obj.subtype == "ICHLOR"
             and PRIM_ATTR in obj.attributes
         ):
-            bodies = controller.model.getByType(BODY_TYPE)
+            # Get the list of bodies configured for this Intellichlor
             intellichlor_bodies = obj[BODY_ATTR].split(" ")
+            _LOGGER.debug(f"Intellichlor bodies configured: {intellichlor_bodies}")
 
-            _LOGGER.debug(f"Intellichlor bodies found: {intellichlor_bodies}")
-
-            body: PoolObject
-            for body in bodies:
-                if body.objnam not in intellichlor_bodies:
+            # Only process bodies that are explicitly configured
+            for body_id in intellichlor_bodies:
+                body = controller.model.getByID(body_id)
+                if not body:
                     _LOGGER.warning(
-                        f"Intellichlor body '{body.objnam}' not found in expected list: {intellichlor_bodies}"
+                        f"Configured Intellichlor body '{body_id}' not found in system"
                     )
                     continue
 
-                intellichlor_index = intellichlor_bodies.index(body.objnam)
-                attribute_key = None
-                if intellichlor_index == 0:
-                    attribute_key = PRIM_ATTR
-                elif intellichlor_index == 1:
-                    attribute_key = SEC_ATTR
-                if attribute_key is not None:
-                    numbers.append(
-                        PoolNumber(
-                            entry,
-                            controller,
-                            obj,
-                            unit_of_measurement=PERCENTAGE,
-                            attribute_key=attribute_key,
-                            name=f"+ Output % ({body.sname})",
-                        )
+                # Determine if this is primary or secondary
+                intellichlor_index = intellichlor_bodies.index(body_id)
+                attribute_key = PRIM_ATTR if intellichlor_index == 0 else SEC_ATTR
+
+                numbers.append(
+                    PoolNumber(
+                        entry,
+                        controller,
+                        obj,
+                        unit_of_measurement=PERCENTAGE,
+                        attribute_key=attribute_key,
+                        name=f"+ Output % ({body.sname})",
                     )
+                )
 
     async_add_entities(numbers)
 
