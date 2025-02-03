@@ -104,12 +104,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     controller = ModelController(entry.data[CONF_HOST], model, loop=hass.loop)
 
     class Handler(ConnectionHandler):
-
-        UPDATE_SIGNAL = DOMAIN + "_UPDATE_" + entry.entry_id
-        CONNECTION_SIGNAL = DOMAIN + "_CONNECTION_" + entry.entry_id
+        def __init__(
+            self,
+            controller,
+            entry: ConfigEntry,
+            hass: HomeAssistant,
+            timeBetweenReconnects=30,
+            force_reconnect_interval=3600,
+        ):
+            """Initialize the handler."""
+            super().__init__(controller, timeBetweenReconnects)
+            self.controller = controller
+            self._entry = entry
+            self._hass = hass
+            self.UPDATE_SIGNAL = DOMAIN + "_UPDATE_" + entry.entry_id
+            self.CONNECTION_SIGNAL = DOMAIN + "_CONNECTION_" + entry.entry_id
+            _LOGGER.info(
+                "Initializing ConnectionHandler with improved connection management v1.0"
+            )
+            self._force_reconnect_interval = force_reconnect_interval
+            self._last_successful_connection = None
+            self._periodic_reconnect_task = None
 
         def started(self, controller):
-
+            """Handle the first time the controller is started."""
             _LOGGER.info(f"connected to system: '{controller.systemInfo.propName}'")
 
             for object in controller.model:
@@ -117,17 +135,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             async def setup_platforms():
                 """Set up platforms."""
-                await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+                await self._hass.config_entries.async_forward_entry_setups(
+                    self._entry, PLATFORMS
+                )
 
-                # dispatcher.async_dispatcher_send(hass, self.CONNECTION_SIGNAL, True)
-
-            hass.async_create_task(setup_platforms())
+            self._hass.async_create_task(setup_platforms())
 
         @callback
         def reconnected(self, controller):
             """Handle reconnection from the Pentair system."""
             _LOGGER.info(f"reconnected to system: '{controller.systemInfo.propName}'")
-            dispatcher.async_dispatcher_send(hass, self.CONNECTION_SIGNAL, True)
+            dispatcher.async_dispatcher_send(self._hass, self.CONNECTION_SIGNAL, True)
 
         @callback
         def disconnected(self, controller, exc):
@@ -135,18 +153,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.info(
                 f"disconnected from system: '{controller.systemInfo.propName}'"
             )
-            dispatcher.async_dispatcher_send(hass, self.CONNECTION_SIGNAL, False)
+            dispatcher.async_dispatcher_send(self._hass, self.CONNECTION_SIGNAL, False)
 
         @callback
         def updated(self, controller, updates: dict[str, PoolObject]):
             """Handle updates from the Pentair system."""
             _LOGGER.debug(f"received update for {len(updates)} pool objects")
-            dispatcher.async_dispatcher_send(hass, self.UPDATE_SIGNAL, updates)
+            dispatcher.async_dispatcher_send(self._hass, self.UPDATE_SIGNAL, updates)
 
     try:
-
         handler = Handler(
             controller,
+            entry=entry,
+            hass=hass,
             timeBetweenReconnects=30,  # reconnect interval 30 seconds
             force_reconnect_interval=3600,  # force reconnect every hour
         )
@@ -154,10 +173,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await handler.start()
 
         hass.data.setdefault(DOMAIN, {})
-
         hass.data[DOMAIN][entry.entry_id] = handler
-
-        # subscribe to Home Assistant STOP event to do some cleanup
 
         async def on_hass_stop(event):
             """Stop push updates when hass stops."""
