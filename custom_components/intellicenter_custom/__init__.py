@@ -1,4 +1,5 @@
 """Pentair IntelliCenter Integration."""
+
 import asyncio
 import logging
 from typing import Any, Optional
@@ -144,7 +145,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     try:
 
-        handler = Handler(controller)
+        handler = Handler(
+            controller,
+            timeBetweenReconnects=30,  # reconnect interval 30 seconds
+            force_reconnect_interval=3600,  # force reconnect every hour
+        )
 
         await handler.start()
 
@@ -340,5 +345,7 @@ class PoolEntity(Entity):
     def pentairTemperatureSettings(self):
         """Return the temperature units from the Pentair system."""
         return (
-            UnitOfTemperature.CELSIUS if self._controller.systemInfo.usesMetric else UnitOfTemperature.FAHRENHEIT
+            UnitOfTemperature.CELSIUS
+            if self._controller.systemInfo.usesMetric
+            else UnitOfTemperature.FAHRENHEIT
         )

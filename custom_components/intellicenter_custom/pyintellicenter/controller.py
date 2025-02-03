@@ -6,6 +6,7 @@ from hashlib import blake2b
 import logging
 import traceback
 from typing import Optional
+import time
 
 from .attributes import (
     MODE_ATTR,
@@ -429,43 +430,109 @@ class ModelController(BaseController):
 class ConnectionHandler:
     """Helper class to recover the connect/disconnect/reconnect cycle of a controller."""
 
-    def __init__(self, controller, timeBetweenReconnects=30):
+    def __init__(
+        self, controller, timeBetweenReconnects=30, force_reconnect_interval=3600
+    ):
         """Initialize the handler."""
         self._controller = controller
-
         self._starterTask = None
+        self._healthCheckTask = None
         self._stopped = False
         self._firstTime = True
-
+        self._last_successful_connection = None
         self._timeBetweenReconnects = timeBetweenReconnects
+        self._force_reconnect_interval = force_reconnect_interval
+        self._is_connected = False
+        self._consecutive_failures = 0
 
         controller._diconnectedCallback = self._diconnectedCallback
 
         if hasattr(controller, "_updatedCallback"):
             controller._updatedCallback = self.updated
 
-    @property
-    def controller(self):
-        """Return the controller the handler manages."""
-        return self._controller
-
     async def start(self):
         """Start the handler loop."""
         if not self._starterTask:
             self._starterTask = asyncio.create_task(self._starter())
+            self._healthCheckTask = asyncio.create_task(self._health_check())
 
     def _next_delay(self, currentDelay: int) -> int:
-        """Compute the delay before the next reconnection attempt.
+        """Compute the delay before the next reconnection attempt."""
+        next_delay = int(currentDelay * 1.5)  # Exponential backoff
+        return min(next_delay, 300)  # Cap at 5 minutes
 
-        default is exponential backoff with a 1.5 factor
-        """
-        return int(currentDelay * 1.5)
+    async def _health_check(self):
+        """Periodically check connection health and force reconnect if needed."""
+        while not self._stopped:
+            try:
+                await asyncio.sleep(60)  # Check every minute
+
+                if self._is_connected:
+                    # Try sending a lightweight command to verify connection
+                    try:
+                        await self._controller.sendCmd(
+                            "GetParamList",
+                            {
+                                "condition": f"{OBJTYP_ATTR}={SYSTEM_TYPE}",
+                                "objectList": [
+                                    {
+                                        "objnam": "INCR",
+                                        "keys": [MODE_ATTR],
+                                    }
+                                ],
+                            },
+                            waitForResponse=True,
+                        )
+                        # Reset failure count on successful heartbeat
+                        self._consecutive_failures = 0
+                    except Exception as err:
+                        _LOGGER.warning(f"Heartbeat check failed: {err}")
+                        self._consecutive_failures += 1
+                        if self._consecutive_failures >= 3:  # After 3 failed heartbeats
+                            self._controller.stop()
+                        continue
+
+                    # Force reconnect if we've been connected too long
+                    if (
+                        self._last_successful_connection
+                        and (time.time() - self._last_successful_connection)
+                        > self._force_reconnect_interval
+                    ):
+                        _LOGGER.info("Forcing reconnection due to age of connection")
+                        self._controller.stop()
+                        continue
+
+                # Check controller health
+                if self._is_connected and not self._check_controller_health():
+                    _LOGGER.warning(
+                        "Controller appears unhealthy, forcing reconnection"
+                    )
+                    self._controller.stop()
+
+            except Exception as err:
+                _LOGGER.error(f"Error in health check: {err}")
+
+    def _check_controller_health(self):
+        """Check if controller appears to be functioning properly."""
+        try:
+            # Check if protocol and transport are alive
+            if not self._controller._protocol or not self._controller._transport:
+                return False
+
+            # Check if we have too many pending requests
+            if len(self._controller._requests) > 100:  # Too many pending requests
+                return False
+
+            return True
+        except Exception:
+            return False
 
     async def _starter(self, initialDelay=0):
         """Attempt to start the controller."""
         started = False
         delay = self._timeBetweenReconnects
-        while not started:
+
+        while not started and not self._stopped:
             try:
                 if initialDelay:
                     self.retrying(delay)
@@ -473,6 +540,9 @@ class ConnectionHandler:
                 _LOGGER.debug("trying to start controller")
 
                 await self._controller.start()
+                self._last_successful_connection = time.time()
+                self._is_connected = True
+                self._consecutive_failures = 0  # Reset failure count on success
 
                 if self._firstTime:
                     self.started(self._controller)
@@ -482,8 +552,20 @@ class ConnectionHandler:
 
                 started = True
                 self._starterTask = None
+
+            except ConnectionRefusedError as err:
+                self._is_connected = False
+                self._consecutive_failures += 1
+                _LOGGER.error(f"Connection refused: {err}")
+                if self._consecutive_failures > 5:  # After 5 failures, wait longer
+                    delay = min(300, delay * 2)
+                self.retrying(delay)
+                await asyncio.sleep(delay)
+
             except Exception as err:
-                _LOGGER.error(f"cannot start: {err}")
+                self._is_connected = False
+                self._consecutive_failures += 1
+                _LOGGER.error(f"Cannot start: {err}")
                 self.retrying(delay)
                 await asyncio.sleep(delay)
                 delay = self._next_delay(delay)
@@ -495,49 +577,39 @@ class ConnectionHandler:
         if self._starterTask:
             self._starterTask.cancel()
             self._starterTask = None
+        if self._healthCheckTask:
+            self._healthCheckTask.cancel()
+            self._healthCheckTask = None
         self._controller.stop()
+        self._is_connected = False
 
     def _diconnectedCallback(self, controller, err):
         """Handle the disconnection of the underlying controller."""
         self.disconnected(controller, err)
         if not self._stopped:
             _LOGGER.error(
-                f"system disconnected  from {self._controller.host} {err if err else ''}"
+                f"system disconnected from {self._controller.host} {err if err else ''}"
             )
             self._starterTask = asyncio.create_task(
                 self._starter(self._timeBetweenReconnects)
             )
 
     def started(self, controller):
-        """Handle the first time the controller is started.
-
-        further reconnections will trigger reconnected method instead
-        """
+        """Handle the first time the controller is started."""
         pass
 
     def retrying(self, delay):
         """Handle the fact that we will retry connection in {delay} seconds."""
         _LOGGER.info(f"will attempt to reconnect in {delay}s")
 
-    def updated(self, controller: ModelController, updates: dict):
-        """Handle the callback that our underlying system has been modified.
-
-        only invoked if the controller has a _updatedCallback attribute
-        changes is expected to contain the list of modified objects
-        """
+    def updated(self, controller, updates: dict):
+        """Handle updates from the Pentair system."""
         pass
 
     def disconnected(self, controller, exc):
-        """Handle the controller being disconnected.
-
-        exc will contain the underlying exception except if
-        the hearbeat has been missed, in this case exc is None
-        """
+        """Handle the controller being disconnected."""
         pass
 
     def reconnected(self, controller):
-        """Handle the controller being reconnected.
-
-        only occurs if the controller was connected before
-        """
+        """Handle the controller being reconnected."""
         pass
